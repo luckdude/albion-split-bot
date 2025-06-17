@@ -45,31 +45,31 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
-@bot.command(name='split')
-async def split(ctx, total_loot: int, *, participants_str: str):
+@bot.tree.command(name="split", description="Split loot between participants with repair costs")
+async def split(interaction: discord.Interaction, total_loot: int, participants: str):
     try:
-        # Convert total loot to integer
+        # Convert total loot to integer (in case it comes with commas)
         total_loot = int(str(total_loot).replace(',', ''))
         
         # Parse participants and their repair costs
-        participants = []
+        participant_list = []
         pattern = r'<@!?(\d+)>:(\d+)'
         
-        for match in re.finditer(pattern, participants_str):
+        for match in re.finditer(pattern, participants):
             user_id = int(match.group(1))
             repair_cost = int(match.group(2))
             user = await bot.fetch_user(user_id)
-            participants.append({
+            participant_list.append({
                 'user': user,
                 'repair': repair_cost
             })
         
-        if not participants:
-            await ctx.send("No valid participants found. Please use the format: @user:repair_cost")
+        if not participant_list:
+            await interaction.response.send_message("No valid participants found. Please use the format: @user:repair_cost")
             return
         
         # Calculate splits
-        calculator = SplitCalculator(total_loot, participants)
+        calculator = SplitCalculator(total_loot, participant_list)
         results = calculator.calculate_splits()
         
         # Create embed
@@ -103,12 +103,12 @@ async def split(ctx, total_loot: int, *, participants_str: str):
                 inline=True
             )
         
-        await ctx.send(embed=embed)
+        await interaction.response.send_message(embed=embed)
         
     except ValueError as e:
-        await ctx.send(f"Error: Invalid number format. Please check your input. Details: {str(e)}")
+        await interaction.response.send_message(f"Error: Invalid number format. Please check your input. Details: {str(e)}")
     except Exception as e:
-        await ctx.send(f"An error occurred: {str(e)}")
+        await interaction.response.send_message(f"An error occurred: {str(e)}")
 
 # Run the bot
 if __name__ == "__main__":
